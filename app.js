@@ -2,12 +2,17 @@ var app = require('koa')()
   , logger = require('koa-logger')
   , json = require('koa-json')
   , views = require('koa-views')
-  , onerror = require('koa-onerror');
+  , onerror = require('koa-onerror')
+  , path = require('path');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
 var sha1 = require('sha1');
-
+var wechat = require('./wechat/g');
+var util = require('./libs/util');
+var config = require('./config');
+var weixin = require('./weixin');
+var wechat_file = path.join(__dirname, './config/wechat.txt');
 // error handler
 onerror(app);
 
@@ -27,31 +32,9 @@ app.use(function *(next){
   console.log('%s %s - %s', this.method, this.url, ms);
 });
 
-// wechat
-var config = {
-  wechat: {
-    token: 'mywechatdemo',
-    appID: 'wx58080b1fe9cb4f49',
-    appSecret: '9dba811200ddd73da9a24d7f36762485'
-  }
-};
 
-app.use(function *(next){
-  console.log(this.query);
-  var token = config.wechat.token;
-  var signature = this.query.signature;
-  var nonce = this.query.nonce;
-  var timestamp = this.query.timestamp;
-  var echostr = this.query.echostr;
-  var str = [token, timestamp, nonce].sort().join('');
-  var sha = sha1(str);
-  console.log(sha);
-  if (sha === signature) {
-    this.body = echostr + '';
-  } else {
-    this.body = 'Invalid Signature';
-  }
-});
+
+app.use(wechat(config.wechat, weixin.reply));
 
 
 app.use(require('koa-static')(__dirname + '/public'));
